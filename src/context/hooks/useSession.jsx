@@ -1,6 +1,6 @@
-import React, { useState, useEffect , useRef, useReducer} from 'react'
+import React, { useState, useEffect , useRef, useReducer, useMemo, useCallback} from 'react'
 
-import { formatDate } from '../../utils/functions';
+import { formatDate, getMinutesBetweenDates } from '../../utils/functions';
 
 
   function deviceId()
@@ -24,7 +24,7 @@ import { formatDate } from '../../utils/functions';
             exists:false,
         data:{
             date:'',
-            id:'',
+            sequential_id:'',
             device_id:'',
             timestamp:'',
             opened_at:'',
@@ -34,12 +34,13 @@ import { formatDate } from '../../utils/functions';
 
   const useSession = () => {
 
-    
+    const runOnce = useRef(null)
     const sessionReducer = (state, action) => {
 
     
         console.log('session reducer' , state, action)
-        
+        let date =new Date()
+        let utcTime = date.getTime() + date.getTimezoneOffset()
         
         switch (action.type) {
     
@@ -47,16 +48,16 @@ import { formatDate } from '../../utils/functions';
           case 'CREATE':
             console.log('create session')
     
-            let date =new Date()
-            let utcTime = date.getTime() + date.getTimezoneOffset()
-    
+               
             let formattedDate = formatDate(new Date(utcTime))
     
             let newSession = {
                 date:formattedDate,
                 session_id:crypto.randomUUID(),
                 device_id:deviceId(),
-                timestamp:new Date(utcTime).toISOString().replace(/\D/g, '')
+                sequential_id:new Date(utcTime).toISOString().replace(/\D/g, ''),
+                opened_at:new Date(utcTime).toISOString()
+                
             }
 
             localStorage.setItem('session', JSON.stringify({
@@ -68,7 +69,7 @@ import { formatDate } from '../../utils/functions';
             return {
                 ...state,
                 exists:true,
-                data:newSession
+                data:{...state.data , ...newSession}
                 
             }
     
@@ -85,20 +86,28 @@ import { formatDate } from '../../utils/functions';
 
             console.log('close session ')
             localStorage.removeItem('session')
+
             
-            let closeDate = new Date(date.getTime() + date.getTimezoneOffset()).toISOString()
+            let closeDate = new Date(utcTime).toISOString()
 
             var closedSession = {
                 ...state,
                 //list: state.list.filter((item) => item.entry_id !== action.id),
                 exists:false,
-                data: {...data, closed_at:closeDate}
+                data: {...state.data, closed_at:closeDate}
               
               }; 
             
-            localStorage.setItem('closed_session', closedSession)
+            localStorage.setItem('closed_session', JSON.stringify(closedSession))
            
-            return closedSession; 
+            return {
+              ...state,
+              exists:false,
+              data:{duration:getMinutesBetweenDates(
+                state.data.opened_at,
+                closeDate
+              )}
+            }; 
     
           
           default:
@@ -113,7 +122,7 @@ import { formatDate } from '../../utils/functions';
       const [session, dispatchSession] = useReducer(sessionReducer, sessionModel)
 
 
-    console.log('session',session)
+    //console.log('session',session)
 
     const readLocalStorage = async (key) => {
         return new Promise((resolve, reject) => {
@@ -130,45 +139,37 @@ import { formatDate } from '../../utils/functions';
       };
 
 
-    const evaluate = async ()=>{
-        var sessionInStorage = await readLocalStorage("session");
-        console.log('useSession sessionInStorage', sessionInStorage, sessionInStorage==null)
-        if (sessionInStorage == null){
-            console.log('usSession init create new session')
-            dispatchSession({type:'CREATE'})
-            
-            }else{
-            
-            if( !session.exists ) dispatchSession({type:'LOAD', data:sessionInStorage})
+
+    const closeSession = ()=> dispatchSession({type:'CLOSE'})
+
+
+    useEffect(() => {
+      (async ()=>{
+        if (session.exists) return;
+         var sessionInStorage = await readLocalStorage("session");
+         var closedSession = await readLocalStorage("closed_session");
+         if(closedSession) return;
+         //console.log('useSession sessionInStorage', sessionInStorage, sessionInStorage==null)
+         if (sessionInStorage == null){
+             //console.log('usSession init create new session')
+             dispatchSession({type:'CREATE'})
+             
+             }else{
+             
+             dispatchSession({type:'LOAD', data:sessionInStorage})
+     
+             }
+     })()
     
-            }
-    }
+      return () => {
+        console.log('useEffect unmount session', session)
+      }
+    }, [])
+    
+  
 
-    evaluate()
-
-    /* const init = ()=>{
-
-        var sessionInStorage = JSON.parse(sessionStorage.getItem("session"));
-        // if it is the first time that this page is loaded
-
-        console.log('usSession sessionInStorage', sessionInStorage, sessionInStorage==null)
-
-
-        if (sessionInStorage == null){
-        console.log('usSession init create new session')
-        dispatchSession({type:'CREATE'})
-        
-        }else{
-        
-        dispatchSession({type:'LOAD', data:sessionInStorage})
-
-        }
-
-
-
-    }
- */
-    return {session}
+    
+    return {session, closeSession}
 
   }
 

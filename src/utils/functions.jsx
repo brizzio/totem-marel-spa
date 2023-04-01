@@ -236,6 +236,16 @@ export const getCartValue = (items) =>{
 //HELPERS
 //====================================================
 
+export function getMinutesBetweenDates(startISOString, endISOString) {
+
+  let startDate = new Date(startISOString)
+  let endDate = new Date(endISOString)
+
+  const diff = endDate.getTime() - startDate.getTime();
+
+  return (diff / 60000);
+}
+
 const add = (function () {
   let counter = 1;
   return function () {counter += 1; return counter}
@@ -254,7 +264,7 @@ async function uuid() {
   
 }
 
-console.log('unique', uuid)
+//console.log('unique', uuid)
 
 // ✅ Format a date to YYYY-MM-DD (or any other format)
 function padTo2Digits(num) {
@@ -273,3 +283,96 @@ function padTo2Digits(num) {
   const sumArrayByProp = (arr, prop) =>{
     return arr.reduce((a,item)=> a + item[prop],0)
   }
+
+  export function checkEan(eanCode) {
+    let result = {
+      read_id:crypto.randomUUID(),
+      isEan:true,
+      inputCode:eanCode,
+      outputCode:'',
+      digits:0,
+      evaluationType:'',
+      error:false,
+      errorMsg:''
+    }
+    eanCode = eanCode.trim();
+    if ([8,12,13,14].indexOf(eanCode.length) == -1 ) {
+      result.isEan=false
+      result.error=true
+      result.errorMsg= eanCode.length + 'is an invalid number of digits'
+      result.digits = eanCode.length
+      result.evaluationType='OTHER'
+      return result; 
+    }
+    //if (eanCode.length < l) {
+    //eanCode = Array(14 - eanCode.length).join(0) + eanCode; //add 0's as padding
+    
+    //if (!eanCode.match(/[\d]{eanCode.length}/))
+    //{
+    // alert('Illegal characters');
+    //return false; }
+    var total=0;
+    var a=eanCode.split('');
+    for (var i in a)
+    {
+    if(i<(a.length-1))
+    {
+    total+=
+    a[i] * (1 + (i % 2) * 2);
+    }
+    }
+    total = eanCode.length == 13
+              ?total%10
+              :eanCode.length == 8
+                ?check8(eanCode)
+                :total
+    if (total != eanCode.substring(eanCode.length - 1)) {
+    // alert('Wrong checksum');
+      result.isEan=false
+      result.error=true
+      result.errorMsg= total + ' Wrong checksum'
+      result.digits = eanCode.length
+      result.evaluationType='OTHER'
+      return result; 
+    }
+      result.isEan=true;
+      result.digits = eanCode.length;
+      result.evaluationType='EAN-'+ eanCode.length;
+      result.outputCode = Array(14 - eanCode.length).join(0) + eanCode;
+      return result; 
+    }
+
+    function checksum(code) {
+      const sum = code.split('').reverse().reduce((sum, char, idx) => {
+          let digit = Number.parseInt(char);
+          let weight = (idx + 1) % 2 === 0 ? 1 : 3;
+          let partial = digit * weight;
+          return sum + partial;
+      }, 0);
+      console.log('checksum', sum)
+      const remainder = sum % 10;
+      const checksum = remainder ? (10 - remainder) : 0;
+  
+      return checksum;
+  }
+
+  function check8(code){
+    code = reverseString(code).split('')
+    let sum1 = code[1]*1 + code[3]*1 + code[5]*1+  code[7]*1 //odd
+    let sum2 = code[2]*1 + code[4]*1 + code[6]*1//even
+    let checksum_value = sum1 + sum2;
+
+    //console.log('check8 odd', code[1], code[3], code[5] , code[7] , sum1 )
+    //console.log('check8 even', code[2] ,code[4] ,code[6] , sum2)
+    //console.log('check8 sum', (3* sum1 + sum2))
+
+    //console.log('check8 checksum_value', ( 10 - [ (3* sum1 + sum2) % 10 ]) % 10)
+    
+    return ( 10 - [ (3* sum1 + sum2) % 10 ]) % 10
+    
+  }
+
+  function reverseString(str) {
+    return (str === '') ? '' : reverseString(str.substr(1)) + str.charAt(0);
+  }
+  

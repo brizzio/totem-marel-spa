@@ -7,9 +7,9 @@ import React, { useState,
 import useStore from './useStore'
 
 import { addItemToCollectionLS, itemBuilder, getLocalStorageCollectionDataByKey, formatDate } from '../../utils/functions'
-import usePrices from './usePrices'
-import useSession from './useSession'
-import { useNavigate } from 'react-router-dom'
+
+
+
 
 
 //https://codesandbox.io/s/react-input-autocomplete-knwn3?file=/src/InputAuto.js
@@ -21,11 +21,11 @@ const useCart = () => {
     
     const [cart , setCart] = useState({})
 
-    const [prices] = usePrices()
-    const session = useSession().session.data
+    //const {prices} = usePrices()
+    
 
-    console.log('useCart prices', prices)
-    console.log('useCart session', session)
+    ///console.log('useCart prices', prices)
+    //console.log('useCart session', session)
 
     //get cart data
    /*  useEffect(()=>{
@@ -39,8 +39,7 @@ const useCart = () => {
       }, [])
 
  */
-      const navigate = useNavigate()
-
+     
       const currentCartModel = {
         cart_id:'',
         date:'',
@@ -174,8 +173,8 @@ const useCart = () => {
 
     
     const searchCode = (code) =>{
-
-        console.log('code prices', prices)
+        const prices = JSON.parse(localStorage.getItem('prices')).data
+        //console.log('code prices', prices)
         const match = prices.filter(el => (el.upc == code))
         console.log('match', match)
         if (match.length == 1) {
@@ -217,16 +216,17 @@ const useCart = () => {
         
     }
 
+   
+
     const createCart = (obj)=>{
         console.log('create cart')
         dispatchCurrentCart({ type: 'NEW' , propsObject:obj})
         
     }
 
-    const insertItem = async (upc)=>{
-        console.log('insert new item')
-        const newItem = await addItem(upc)
-        if (newItem) dispatchCurrentCart({type:'INSERT_ITEM', item:newItem})
+    const insertItem = async (item)=>{
+        
+        if (item) dispatchCurrentCart({type:'INSERT_ITEM', item:item})
     }
 
 
@@ -257,7 +257,8 @@ const useCart = () => {
         removeItem,
         createCart,
         deleteCart,
-        addFiscalCode
+        addFiscalCode,
+        searchCode
 
     }
    

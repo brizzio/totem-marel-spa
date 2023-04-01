@@ -92,3 +92,36 @@ const Bancomat = (props)=>{
 
     )
   }
+
+
+
+  //dispatch({type:'search', code:readed.code})
+      console.log('verify if may add item', ctx.currentCart.cart_id !== '', ctx.currentCart.closed_at=='' , (ctx.currentCart.cart_id !== '' && ctx.currentCart.closed_at=='' && ctx.currentRead.isListed), readed)
+
+      console.log('confirm may add item',ctx.currentCart.cart_id !== '', ctx.currentCart.closed_at=='' , !!ctx.currentRead.isListed,  ctx.currentRead)
+
+        if(ctx.currentCart.cart_id !== '' && ctx.currentCart.closed_at=='' && !!ctx.currentRead.isListed) {
+          
+          console.log('ctx.currentRead.reference',JSON.stringify(ctx.currentRead.reference))
+
+          let date =new Date()
+          let utcTime = date.getTime() + date.getTimezoneOffset()
+
+          let item ={
+            ...ctx.currentRead.reference,
+            code_type:ctx.currentRead.evaluationType,
+            read_id:ctx.currentRead.read_id,
+            digits:ctx.currentRead.digits,
+            entry_id:new Date(utcTime).toISOString().replace(/\D/g, ''),
+            deleted:false,
+            date_added: date,
+            time_added: utcTime,
+            order:'1/1',
+            quantity:1,
+
+          }
+          console.log('add Item', item)    
+          insertItem(item)
+          
+          
+        }
