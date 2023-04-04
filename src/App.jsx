@@ -1,6 +1,9 @@
 import {useReducer, useMemo, useRef, useEffect, useCallback} from 'react'
 
+import { useMutation } from '@tanstack/react-query';
 import Payment from './pages/Payment';
+
+
 
 
 
@@ -12,6 +15,10 @@ import useScanner from './context/hooks/useScanner';
 import useCart from './context/hooks/useCart';
 
 import { checkEan } from './utils/functions';
+
+import { fetchQuery } from './api/api';
+
+
 
 const scanType = Object.freeze({
   PRODUCT: 'PRODUCT',
@@ -59,7 +66,13 @@ const ctxModel={
 
     console.log('CTX reducer', state, action)
 
-    
+    let date =new Date()
+    let utcTime = date.getTime() + date.getTimezoneOffset()
+
+    const summarize = (arr, field) => arr.reduce((a,e)=>{
+      let val = e.deleted?0:e[field]
+      return a + val
+    },0)
 
     switch (action.type){
 
@@ -78,11 +91,11 @@ const ctxModel={
       }
 
       case 'onRead':
-        console.log('onRead state - action', state, action.readed)
+        //console.log('onRead state - action', state, action.readed)
         const obj = action.readed.code?checkEan(action.readed.code):{}
         const gotRef = searchCode(readed.code)
 
-        console.log('onread reference current cart', !!gotRef , state.currentCart.cart_id, !!gotRef && state.currentCart.cart_id !== '')
+        //console.log('onread reference current cart', !!gotRef , state.currentCart.cart_id, !!gotRef && state.currentCart.cart_id !== '')
 
         let newState = {
           ...state,
@@ -100,13 +113,12 @@ const ctxModel={
 
         const cartIsOpen = (!!state.currentCart.cart_id && !state.closed_at)
 
-        console.log('onread cartIsOpen', !!state.currentCart.cart_id ,!state.closed_at, cartIsOpen)
+        //console.log('onread cartIsOpen', !!state.currentCart.cart_id ,!state.closed_at, cartIsOpen)
 
-        console.log('onread evaluate cart', !!gotRef ,cartIsOpen, !!gotRef && cartIsOpen)
+        //console.log('onread evaluate cart', !!gotRef ,cartIsOpen, !!gotRef && cartIsOpen)
 
         if (!!gotRef && cartIsOpen){
-          let date =new Date()
-          let utcTime = date.getTime() + date.getTimezoneOffset()
+          
 
           let item ={
             ...gotRef,
@@ -125,6 +137,7 @@ const ctxModel={
           let items = state.currentCart.items
          
           newState.currentCart.items =[...items, item]
+          newState.currentRead={}
           
         }
 
@@ -195,6 +208,118 @@ const ctxModel={
               currentRead:{}
             } 
       
+      /* 
+      payment methods {
+        debit:'debit',
+        credit:'credit',
+        cash:'cash',
+        other:'other'
+      }
+      
+      payment status {
+        pending:'pending',
+        done:'done',
+        rejected:'rejected',
+        aborted:'aborted'
+      }
+      
+      */
+      case 'selectPaymentMethod':
+        console.log('selectPaymentMethod...', action.payment)
+                
+        return  {
+          ...state,
+          currentCart:{
+            ...currentCart,
+            payment_method:action.payment.method,
+            payment_status:action.payment.status,
+            payment_value:action.payment.value,
+            
+          }
+          
+      }
+
+
+      /* 
+      CLOSE CART ROUTINE
+      
+      */
+      case 'startClosingCartProcess':
+        console.log('startClosingCartProcess...')
+
+       
+                
+        return  {
+          ...state,
+          currentCart:{
+            ...currentCart,
+            status:'closed',
+            closed_at: new Date(utcTime).toISOString()
+
+            
+          }
+          
+      }
+
+      case 'closeCartWrapper':
+        console.log('closeCartWrapper...')
+
+        let c = state.currentCart
+        c.closed_at= new Date(utcTime).toISOString()
+        c.count= c.items.length
+        c.purchase_items_count= c.items.filter(e=>!e.deleted).length
+        c.total=summarize(c.items,'calculated_price')
+
+
+        function postCartPayload(){
+
+          let sessionInfo = {
+            session_id:session.data.session_id,
+            device_id: session.data.device_id
+          }
+        
+          let cartInfo = {
+            cart_id:c.cart_id,
+            cart_date: c.date,
+            cart_created_at:c.created_at,
+            cart_closed_at:c.closed_at,
+            user_fiscal_code:c.fiscal_code,
+            cart_origin:c.origin
+          }
+        
+          let arr =[]
+
+          for (item in c.items){
+            
+            arr.push({
+              ...sessionInfo,
+              ...cartInfo,
+              ...c.items[item]
+            })
+          }
+        
+          return arr
+        
+        
+        }
+
+        const requestBody ={
+          table:'totem',
+          payload:postCartPayload()
+        }
+        fetchQuery(requestBody).then((res)=>console.log('database sync', res))
+
+        
+
+
+        return  {
+          ...state,
+          carts: [...state.carts, c],
+          currentCart:{},
+          currentRead:{}
+          
+      }
+  
          
     }
 
@@ -242,10 +367,12 @@ const ctxModel={
   }, [portInfo.current])
 
   useMemo(() => {
+
     
-    console.log('current cart useMemo', portInfo.current)
-    dispatch({type:'onCurrentCartUpdate', cart:currentCart})
+       console.log('current cart useMemo', portInfo.current)
+       dispatch({type:'onCurrentCartUpdate', cart:currentCart})
     
+   
   }, [currentCart])
   
   //const exposeScannerReading = (readed)=> dispatch({type:'onRead', readed})
@@ -255,10 +382,15 @@ const ctxModel={
   
   const nav = (view)=>dispatch({type:'changeView', id:view})
 
-  const closeCart= ()=>dispatch({type:'closeCart'})
-
-  console.log('state no App', ctx)
+  const closeCart= ()=>dispatch({type:'startClosingCartProcess'})
   
+  const closeCartWrapper=()=>dispatch({type:'closeCartWrapper'})
+
+  const newCart = ()=>{
+    dispatch({type:'clearRead'})
+    createCart()
+  }
+
   if(ctx.view == 1) return (
     <>
       <Payment total={2.44} nav={nav} />
@@ -280,7 +412,7 @@ const ctxModel={
    <div>APPLICATION</div>
    <div>===============================================================</div>
    <div>{ctx.port
-      &&<InitCart current={ctx.currentCart} newCart={createCart}/>}
+      &&<InitCart current={ctx.currentCart} newCart={newCart}/>}
    </div>
    <div>{ctx.port
       &&<ListDisplay cart={ctx.currentCart} deleteCart={()=>dispatch({type:'clearCurrentCart'})} 
@@ -288,7 +420,7 @@ const ctxModel={
    </div>
 
    <div>{ctx.port
-      &&<CloseCartDisplay cart={ctx.currentCart} nav={nav}/>}
+      &&<CloseCartDisplay ctx={ctx} nav={nav} dispatch={closeCartWrapper}/>}
    </div>
    
    </>
@@ -299,6 +431,9 @@ const ctxModel={
     
   )
 }
+
+
+
 
 
 const SessionDisplay =({active, onClose})=>{
@@ -479,14 +614,25 @@ if (!cart.cart_id) return(
   )
 }
 
-const CloseCartDisplay =({cart, nav})=>{
+const CloseCartDisplay =({ctx, nav, dispatch})=>{
 
   //console.log('symbol', Symbol(read.count).description)
+  const {session} = useSession()
+  const cart = ctx.currentCart
+  const status =ctx.currentCart.status?ctx.currentCart.status:'open'
+  const close = ()=>{
+      console.log('closing cart')
+      //console.log('session', JSON.stringify(session))
+      //console.log('cart', JSON.stringify(cart))
+      dispatch()
+  }
 
   return(
     <>
     <div>
-      {!!cart.items?.length && <button onClick={()=>nav(1)}>CLOSE CART</button>}
+      {!!cart.items?.length && <button onClick={close}>CLOSE CART   </button>}
+      __STATUS: {status}
+
     </div>
     
 

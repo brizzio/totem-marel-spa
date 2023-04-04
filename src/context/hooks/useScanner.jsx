@@ -65,7 +65,7 @@ let start = async () => {
          //console.log('scanned on end',scanned, end);
          if(end){
             var nitem = {}
-            console.log('at end>>', scanned, scan)
+            //console.log('at end>>', scanned, scan)
             var it
             counter.current=counter.current+1
             setReaded({...readed, code:scanned.replace(/\W/g, ""), count:counter.current})

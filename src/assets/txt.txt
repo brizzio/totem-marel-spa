@@ -125,3 +125,101 @@ const Bancomat = (props)=>{
           
           
         }
+
+
+
+   case 'changeView':
+        console.log('change view ...', action.id)
+                    
+      return {
+        ...state,
+        view:action.id
+      } 
+  
+
+      
+         
+    }
+
+  }
+  
+  const [ctx, dispatch] = useReducer(ctxReducer, ctxModel)
+  
+  const init = useCallback(
+    () => {
+      if(!started.current) dispatch({type:'init'})
+    },
+    [started.current],
+  )
+
+  
+  
+  
+
+  useEffect(() => {
+    console.log('init state')
+    init()
+  
+    return () => {
+      console.log('init state useEffect')
+    }
+  }, [])
+  
+  
+  useMemo(() => {
+    
+    console.log('readed changed', readed)
+    if(readed.code !== '') dispatch({type:'onRead', readed})
+      
+  }, [readed])
+
+  useMemo(() => {
+    
+    console.log('open port useMemot', portInfo.current)
+    dispatch({type:'onPortOpen', data:{
+      hasSerial:true,
+      port:portInfo.current,
+      isScannerOn:isScannerOn
+    }})
+    
+  }, [portInfo.current])
+
+  useMemo(() => {
+    
+    console.log('current cart useMemo', portInfo.current)
+    dispatch({type:'onCurrentCartUpdate', cart:currentCart})
+    
+  }, [currentCart])
+  
+  //const exposeScannerReading = (readed)=> dispatch({type:'onRead', readed})
+
+  //if (loading) return(<Render/>)
+
+  const nav = (view)=>dispatch({type:'changeView', id:view})
+
+  const closeCart= ()=>dispatch({type:'closeCart'})
+
+  console.log('state no App', ctx)
+  
+  if(ctx.view == 1) return (
+    <>
+      <Payment total={2.44} nav={nav} />
+    </>
+  )
+  
+
+   useMemo(() => {
+
+    let isClosed = currentCart.status? (currentCart.status =='closed'):false
+    console.log('useMemo cart is closed?', isClosed)
+    if (isClosed){
+      //move current cart to carts an clear current cart
+      console.log('closeCartWrapper')
+      dispatch({type:'CloseCartWrapper', cart:currentCart})
+
+    }else{
+       console.log('current cart useMemo', portInfo.current)
+       dispatch({type:'onCurrentCartUpdate', cart:currentCart})
+    }
+   
+  }, [currentCart])

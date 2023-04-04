@@ -169,16 +169,16 @@ const useCart = () => {
     
     const [currentCart, dispatchCurrentCart] = useReducer(currentCartReducer, currentCartModel)
 
-    console.log('currentCart', currentCart)
+    //console.log('currentCart', currentCart)
 
     
     const searchCode = (code) =>{
         const prices = JSON.parse(localStorage.getItem('prices')).data
         //console.log('code prices', prices)
         const match = prices.filter(el => (el.upc == code))
-        console.log('match', match)
+        //console.log('match', match)
         if (match.length == 1) {
-            console.log('match', match[0])
+            //console.log('match', match[0])
             return match[0]
         }
 

@@ -12,13 +12,14 @@ import axios from 'axios';
   })();
 }, []); */
 
-const gasId = 'AKfycbzkDlyo9qo3OhgIEjdF-k5xHy1EpjdRm-SLkM0tVHiycs4eUHSOnTNNrx9KsKmr3LkUeQ'
+const gasId =
+  "AKfycbxzrwdy9gfW8uRz4TTOkN3kzgD5mANDPVnkbSr7bOav5WkNvtP1bHPuFEhG8jPtpNR08Q";
 
 axios.defaults.headers.post['Content-Type'] ='application/json';
 axios.defaults.headers.post['Access-Control-Allow-Origin'] = '*';
 
 
-
+export const url = `https://script.google.com/macros/s/${gasId}/exec`
 
 const serialize = async function(obj) {
   var str = [];
@@ -106,7 +107,22 @@ export function fetchData (table, data) {
   console.log('fetch response', res)
 }
 
+export const fetchQuery = (body) => {
+  const requestOptions = (objBody) => {
+    return {
+      redirect: "follow",
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(objBody),
+    };
+  };
+
+  return fetch(url, requestOptions(body)).then((response) => response.json())
+};
+
+
 
 export default {
-  get
+  get,
+  fetchQuery
 }

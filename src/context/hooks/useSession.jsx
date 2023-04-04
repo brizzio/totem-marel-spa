@@ -74,7 +74,7 @@ import { formatDate, getMinutesBetweenDates } from '../../utils/functions';
             }
     
             case 'LOAD':
-                console.log('Load session', action.data)
+                //console.log('Load session', action.data)
                            
                 return {
                     ...state,
@@ -162,7 +162,7 @@ import { formatDate, getMinutesBetweenDates } from '../../utils/functions';
      })()
     
       return () => {
-        console.log('useEffect unmount session', session)
+        //console.log('useEffect unmount session', session)
       }
     }, [])
     

@@ -228,6 +228,10 @@ export const getCartValue = (items) =>{
     return sumArrayByProp(items,'calculated_price')
 }
 
+export function wait(duration){
+  return new Promise(resolve=>setTimeout(resolve, duration))
+}
+
 
 
 
@@ -375,4 +379,6 @@ function padTo2Digits(num) {
   function reverseString(str) {
     return (str === '') ? '' : reverseString(str.substr(1)) + str.charAt(0);
   }
+
+
   
