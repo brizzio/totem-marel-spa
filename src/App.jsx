@@ -60,6 +60,7 @@ const ctxModel={
   carts:[],
   currentCart:{},
   currentRead:{},
+  search:'',
   view:0
 }
 
@@ -151,6 +152,29 @@ const ctxModel={
 
 
       return newState
+
+      case 'searchItemByUPC':
+
+      //console.log('onRead state - action', state, action.readed)
+      const upcDetails = action.searchString?checkEan(action.searchString):{}
+      const searchResult = searchCode(action.searchString)
+
+     
+      return {
+        ...state,
+        search:action.searchString,
+        searchItem:{
+                     ...upcDetails,
+                     reference:!!searchResult?searchResult:{},
+                     isListed:!!searchResult,
+                     type:!!searchResult?'PRODUCT':'OTHER'
+                    }
+        
+
+      }
+
+        
+
 
             
       case 'onPortOpen':
@@ -392,6 +416,8 @@ const ctxModel={
 
   const clearCart = () =>dispatch({type:'clearCurrentCart'})
 
+  const searchItem = (upc)=> dispatch({type:'searchItemByUPC', searchString:upc})
+
   const newCart = ()=>{
     dispatch({type:'clearRead'})
     createCart()
@@ -438,7 +464,8 @@ const ctxModel={
       <Main cart={ctx.currentCart} 
             trash={removeListItem}
             clear={clearCart}
-            closeCart={closeCartWrapper}/>}
+            closeCart={closeCartWrapper}
+            search={searchItem}/>}
    
 
        
@@ -469,7 +496,7 @@ const ctxModel={
 }
 
 
-const Main = ( {cart, trash, clear, closeCart})=>{
+const Main = ( {cart, trash, clear, closeCart, search})=>{
 
   
   console.log('main cart ', cart, !!cart.items)
@@ -527,7 +554,8 @@ const Main = ( {cart, trash, clear, closeCart})=>{
                 <img  className="  h-[8rem] p-3 " src='/scanner.gif'/>
                 <div className=" flex flex-col w-full ">
                     <span className='text-blue font-thin text-3xl px-3 self-center w-[16rem] my-3'>Il scanner non legge il prodotto?</span>
-                    <SearchModal btnTitle='clicca'/>
+                    <SearchModal btnTitle='clicca'
+                    update={search}/>
                    
                 </div>               
             </div>
@@ -571,7 +599,7 @@ const Main = ( {cart, trash, clear, closeCart})=>{
                      <span className='text-zinc-900 font-normal text-4xl text-center py-3 '> {cart.total.toFixed(2)}</span>
              </div>
              
-             <button className={`bg-teal-600  py-6 mx-2 rounded-lg shadow-md text-white font-semibold w-full text-2xl ${cart.total==0?'disabled':''}`}
+             <button className={`bg-teal-600  py-4 mx-2 rounded-lg shadow-md text-white font-semibold w-full text-2xl ${cart.total==0?'disabled':''}`}
              onClick={closeCurrentCart}>PROCEDI COL PAGAMENTO
              </button>
  
