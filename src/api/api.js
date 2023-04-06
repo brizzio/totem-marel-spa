@@ -107,7 +107,7 @@ export function fetchData (table, data) {
   console.log('fetch response', res)
 }
 
-export const fetchQuery = (body) => {
+export const fetchQuery = async (body) => {
   const requestOptions = (objBody) => {
     return {
       redirect: "follow",
@@ -117,7 +117,8 @@ export const fetchQuery = (body) => {
     };
   };
 
-  return fetch(url, requestOptions(body)).then((response) => response.json())
+  const response = await fetch(url, requestOptions(body));
+  return await response.json();
 };
 
 

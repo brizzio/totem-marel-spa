@@ -1,22 +1,23 @@
-import {useReducer, useMemo, useRef, useEffect, useCallback} from 'react'
-
+import React, {useReducer, useMemo, useRef, useEffect, useCallback} from 'react'
 import { useMutation } from '@tanstack/react-query';
 import Payment from './pages/Payment';
-
-
-
-
 
 import useSession from './context/hooks/useSession';
 import usePrices from './context/hooks/usePrices';
 import useScanner from './context/hooks/useScanner';
-
-
 import useCart from './context/hooks/useCart';
+
+import AppLayout from './layouts/AppLayout';
+import Start from './pages/Start';
+
+import IdiomSelector from './components/common/IdiomSelector';
+import BizerbaLogoSVG from './components/common/BizerbaLogoSVG';
 
 import { checkEan } from './utils/functions';
 
 import { fetchQuery } from './api/api';
+
+import SearchModal from '../modals/SearchModal';
 
 
 
@@ -48,7 +49,7 @@ function App() {
 
 } = useCart()
 
-const started = useRef(false)
+const starting = useRef(true)
 
 const ctxModel={
   session:{},
@@ -58,7 +59,8 @@ const ctxModel={
   prices:[],
   carts:[],
   currentCart:{},
-  currentRead:{}
+  currentRead:{},
+  view:0
 }
 
 
@@ -79,12 +81,14 @@ const ctxModel={
       case 'init':
         console.log('init', state, action)
         console.log('init prices', prices)
-        started.current = true
+        console.log('init session', session)
+        starting.current = false
       return {
 
         ...ctxModel,
-        session:session,
+        session:JSON.parse(localStorage.getItem('session')),
         prices:prices.data,
+        view:0
         
         
 
@@ -134,9 +138,11 @@ const ctxModel={
 
           }
 
-          let items = state.currentCart.items
-         
-          newState.currentCart.items =[...items, item]
+          let items = [...state.currentCart.items, item]
+          
+          newState.currentCart.items = items
+          newState.currentCart.total= summarize(items,'calculated_price')
+
           newState.currentRead={}
           
         }
@@ -185,6 +191,7 @@ const ctxModel={
             currentCart:{
               ...currentCart,
               items:removedList,
+              total:summarize(removedList,'calculated_price')
               
             }
             
@@ -327,24 +334,19 @@ const ctxModel={
   
   const [ctx, dispatch] = useReducer(ctxReducer, ctxModel)
   
-  const init = useCallback(
-    () => {
-      if(!started.current) dispatch({type:'init'})
-    },
-    [started.current],
-  )
-
+  const init = () => {
+      console.log('starting?', starting.current)
+      if(starting.current) dispatch({type:'init'})
+    }
   
   
-  
+ 
 
   useEffect(() => {
     console.log('init state')
     init()
   
-    return () => {
-      console.log('init state useEffect')
-    }
+   
   }, [])
   
   
@@ -386,10 +388,16 @@ const ctxModel={
   
   const closeCartWrapper=()=>dispatch({type:'closeCartWrapper'})
 
+  const removeListItem =(index)=>dispatch({type:'removeItemFromCartList' , key:index})
+
+  const clearCart = () =>dispatch({type:'clearCurrentCart'})
+
   const newCart = ()=>{
     dispatch({type:'clearRead'})
     createCart()
   }
+
+  if(!ctx.session.exists) return ( <AppLayout><Start ctx={ctx} nav={nav} closeSession={closeSession}/></AppLayout>)
 
   if(ctx.view == 1) return (
     <>
@@ -397,33 +405,61 @@ const ctxModel={
     </>
   )
 
+  
+
+
   console.log('state no App', ctx)
+  
+  
+  
   return (
 
-   <>
    
-   <SessionDisplay active={session} onClose={closeSession}/>
-   <div>------------------------------------------------------------</div>
-   <ScannerDisplay init={start} read={readed} port={portInfo} isOn={isScannerOn}/>
-   <ReadedDisplay read={readed}  />
-   <div>------------------------------------------------------------</div>
-    <CtxDisplay state={ctx}/>
-   <div>===============================================================</div>
-   <div>APPLICATION</div>
-   <div>===============================================================</div>
-   <div>{ctx.port
-      &&<InitCart current={ctx.currentCart} newCart={newCart}/>}
-   </div>
-   <div>{ctx.port
-      &&<ListDisplay cart={ctx.currentCart} deleteCart={()=>dispatch({type:'clearCurrentCart'})} 
-      removeItem={(index)=>dispatch({type:'removeItemFromCartList' , key:index})}/>}
-   </div>
+   <AppLayout>
+    
+    
+    {/* Absolute positioned items */}
+    <div className="absolute top-0 right-0"> 
+       <IdiomSelector/>
+    </div>
+    <BizerbaLogoSVG cn="absolute -bottom-1 right-3 pr-3"/> 
+   
+    {/* Content page to display */}
+    <div className="flex justify-center items-center w-full "> 
+      
+      {!ctx.isScannerOn && <ScannerDisplay init={start} read={readed} port={portInfo} isOn={isScannerOn}/>}
 
-   <div>{ctx.port
-      &&<CloseCartDisplay ctx={ctx} nav={nav} dispatch={closeCartWrapper}/>}
-   </div>
+      {ctx.port && 
+      !ctx.currentCart.cart_id && 
+      <InitCart current={ctx.currentCart} newCart={newCart}/>}
    
-   </>
+     {ctx.port && 
+      ctx.currentCart.cart_id && 
+      <Main cart={ctx.currentCart} 
+            trash={removeListItem}
+            clear={clearCart}
+            closeCart={closeCartWrapper}/>}
+   
+
+       
+
+    </div>
+   
+    
+
+
+
+
+
+
+
+   
+   
+   
+
+   </AppLayout>
+   
+   
       
        
       
@@ -432,6 +468,154 @@ const ctxModel={
   )
 }
 
+
+const Main = ( {cart, trash, clear, closeCart})=>{
+
+  
+  console.log('main cart ', cart, !!cart.items)
+  const remove = (index)=>trash(index)
+  const clearCart = ()=> clear()
+  const closeCurrentCart = ()=>{
+    console.log('closing cart')
+    //console.log('session', JSON.stringify(session))
+    //console.log('cart', JSON.stringify(cart))
+    closeCart()
+
+  }
+
+  const getData = (iso) => {
+    const date = new Date(iso);
+    return new Intl.DateTimeFormat("it-IT").format(date);
+    // Expected output: "12/20/2020"
+  };
+
+  return(
+  
+  <div className='flex flex-row justify-center w-full h-fit '>
+
+
+    <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full bg-white mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
+            <div className='flex items-center  w-full h-[2.5rem] bg-teal-600 py-3 rounded-tl-2xl rounded-tr-2xl pr-2'>
+            <img  className=" w-[6rem] p-2" src='/marel-logo.png'/>
+                <span className='text-white text-lg font-semibold pl-3'>LA TUA SPESA</span>
+                
+                <span className="text-white text-lg pl-3">Cliente:--</span>  
+                
+                <span className="text-white text-lg pl-3">{getData(cart.created_at)}</span>  
+
+                <span className="text-white text-lg pl-3">0</span> 
+            </div>
+            <div className="flex flex-col w-full h-[30rem] items-start overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+               {!!cart.items
+                ? cart.items.map((el,i)=>!el.deleted &&<ListItemRender 
+                key={i} 
+                item={el}
+                onTrashClick={()=>remove(i)}
+                />)
+                :<span className='text-blue font-thin text-3xl px-3 w-[16rem] my-3'>Passa i prodotti nello scanner...</span>}
+                
+            </div>
+
+        </div>
+
+        <div className='flex flex-col items-left justify-center w-1/2  gap-5 ml-3 mt-4'>
+            
+           
+ 
+ 
+            <div className=" flex flex-row h-[8rem]  border-zinc-600 bg-white shadow-lg rounded-2xl  w-[26rem] ">
+                <img  className="  h-[8rem] p-3 " src='/scanner.gif'/>
+                <div className=" flex flex-col w-full ">
+                    <span className='text-blue font-thin text-3xl px-3 self-center w-[16rem] my-3'>Il scanner non legge il prodotto?</span>
+                    <SearchModal btnTitle='clicca'/>
+                   
+                </div>               
+            </div>
+
+
+             <div className=" absolute top-8 right-28 flex flex-col h-[8rem] items-center justify-center border-zinc-600 bg-white shadow-lg rounded-2xl  w-[8rem] pb-6 ">
+ 
+                 
+                 <img  className="  w-[5rem]" src='/lotteryIcon.png'/>
+ 
+                 <span className='text-blue font-thin text-xl px-3 text-center w-[10rem] leading-6'>LOTTERIA SCONTRINI</span>
+                     
+             </div>
+             
+            
+             <span className='flex items-center justify-start mt-3 text-indigo-800 font-thin text-3xl px-3 text-left w-full'>Ti occorre qualcos'altro?</span>
+ 
+ 
+             <div className=" flex flex-col h-fit items-center border-zinc-600  w-full gap-3 ">
+ 
+                 <div className=" flex flex-row w-full justify-between items-center">
+                     <div className=" flex flex-col items-center justify-center h-[8rem]  border-zinc-600 bg-white shadow-lg rounded-2xl  w-[13rem] " >
+                         <i className="fa-solid fa-mobile-screen-button fa-3x"></i>
+                         <span className='text-blue font-thin text-2xl px-3 w-full text-center'>Ricarica Telefono</span>
+                     </div>
+                     <div className=" flex flex-col items-center justify-center h-[8rem]  border-zinc-600 bg-white shadow-lg rounded-2xl  w-[13rem] ">
+                         <i className="fa-solid fa-percent fa-3x"></i>
+                         <span className='text-blue font-thin text-2xl px-3 
+                         w-full text-center'>Applica Sconto</span>
+                     </div>
+                     <div className=" flex flex-col items-center justify-center h-[8rem]  border-zinc-600 bg-white shadow-lg rounded-2xl  w-[13rem] ">
+                         <i className="fa-solid fa-basket-shopping fa-3x"></i>
+                         <span className='text-blue font-thin text-2xl px-3 w-full text-center'>La Mia Borsa</span>
+                     </div>
+                 </div> 
+ 
+             </div>
+ 
+             <div className=" flex flex-row h-fit items-center justify-center border-zinc-600 bg-white shadow-lg rounded-2xl  w-full ">
+                 <span className='text-zinc-900 font-normal text-4xl text-center py-3 px-1 '> € </span>
+                     <span className='text-zinc-900 font-normal text-4xl text-center py-3 '> {cart.total.toFixed(2)}</span>
+             </div>
+             
+             <button className={`bg-teal-600  py-6 mx-2 rounded-lg shadow-md text-white font-semibold w-full text-2xl ${cart.total==0?'disabled':''}`}
+             onClick={closeCurrentCart}>PROCEDI COL PAGAMENTO
+             </button>
+ 
+         </div>
+    </div>
+
+  )
+}
+
+
+const ListItemRender = (props) => {
+  
+
+  const { item, onTrashClick}  = props
+  
+
+  var total = item.calculated_price?parseFloat(item.calculated_price):0
+  var priceType = item.promo_type>0?"P":"R"
+
+ 
+  
+
+  return (
+  <div className='flex flex-row w-full px-3 py-0.5 items-center justify-between text-xs text-gray-900 border-b border-gray-400'>
+      <div className='flex flex-row items-center'>
+          <span className="px-2">{item.upc}</span> 
+          <span className="px-2">{item.product_name}</span>       
+          <span className="pl-2">{item.weight}</span>
+          <span>{item.weight_unit}</span>          
+      </div>  
+      <div className="py-1 px-1">
+          <div className="flex flex-row py-1 px-1 items-center gap-1">
+              <span>{item.currency}</span>
+              <span>{total.toFixed(2)}</span>
+              <span className="px-2">{priceType}</span> 
+              <button id={item.entry_id} 
+                      onClick={onTrashClick}>
+                  <i className="fa-regular fa-trash-can"></i>
+              </button>
+          </div>          
+      </div>
+  </div>
+  )
+}
 
 
 
@@ -470,26 +654,22 @@ const ScannerDisplay =(props)=>{
     await props.init()
   }
 
-  
-
-
   return(
     <>
     
-    <div>
-      {props.isOn?'Scanner is ON':'Scanner is OFF'}<br/>
-      {`Port: ${JSON.stringify(props.port.current)}`}
+    <div className="relative flex items-center justify-center w-4/6 min-h-full border-zinc-600 bg-white shadow-lg rounded-2xl"> 
+      <div className=" flex flex-row items-center justify-center h-[26rem] w-[30rem] ">
+          <img  className="  h-[18rem] " src='/scanner.gif'/>
+          <div className=" flex flex-col w-full ">
+              <span className='text-blue font-thin text-3xl px-3 self-center w-[16rem] my-3'>Clicca qui per registrare lo scanner su questo dispositivo.</span>
+              <button className='bg-red-500  py-2 mx-2 rounded-lg shadow-xl text-white font-semibold w-[14rem] text-2xl' onClick={initScanner}
+             >ATTIVARE
+              </button>
+          </div>  
+
+           <img  className=" absolute top-3 left-0 w-[6rem] p-2" src='/marel-logo.png'/>
+      </div>
     </div>
-    
-    <div>
-      <p>{`Session Reading Count: ${JSON.stringify(props.read.count)}`}</p>
-      {`Code: ${JSON.stringify(props.read.code)}`}
-    </div>
-    <br/>
-    {
-      !props.port.current&&<button onClick={initScanner}>Activate Scanner</button>
-    }
-    
     
     
     
@@ -520,10 +700,31 @@ const InitCart =({current, newCart})=>{
  )
 
   return(
-    <>
-    <button onClick={create}>NEW CART</button>
-    <br/>   
-    </>
+
+    <div className='relative flex flex-col h-[32rem] w-full items-center justify-center bg-teal-300 rounded-xl gap-4'
+    style={{background: "linear-gradient(90deg, #667eea 0%, #764ba2 100%)"}}>
+        
+        <div className=" px-6">
+          <h2 className="text-4xl font-bold mb-2 text-white text-center">
+            Clicca per iniziare il cassa!
+          </h2>
+          <h3 className="text-2xl mb-8 text-gray-200">
+            Scannerizza i prodotti del tuo carrello e poi paga direttamente qui, senza perdere tempo!
+          </h3>
+      </div>
+
+      <button className="bg-orange-500  text-2xl rounded-full py-3 px-20 shadow-lg uppercase tracking-wider text-white"
+      onClick={create}>
+          INIZIO
+        </button>
+       
+
+        <img  className=" absolute top-3 left-0 w-[6rem] p-2" src='/marel-logo.png'/>
+
+    </div>
+    
+   
+  
   )
 }
 

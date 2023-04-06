@@ -72,11 +72,11 @@ function IdiomSelector(props) {
       singleValue: (defaultStyles) => ({ ...defaultStyles, color: "#fff" }),
     };
   
-    console.log(options)
+    //console.log(options)
   
     const handleChange = (selectedOption) => {
       setSelected(selectedOption);
-      console.log(`KIOSCO Option selected:`, selectedOption);
+      //console.log(`KIOSCO Option selected:`, selectedOption);
     };
   
     return (
