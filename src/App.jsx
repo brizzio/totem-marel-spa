@@ -1,6 +1,5 @@
 import React, {useReducer, useMemo, useRef, useEffect, useCallback} from 'react'
 import { useMutation } from '@tanstack/react-query';
-import Payment from './pages/Payment';
 
 import useSession from './context/hooks/useSession';
 import usePrices from './context/hooks/usePrices';
@@ -17,8 +16,11 @@ import { checkEan } from './utils/functions';
 
 import { fetchQuery } from './api/api';
 
-import SearchModal from '../modals/SearchModal';
+import Timer from './components/common/Timer'
 
+import SearchModal from '../modals/SearchModal';
+import FiscalCodeModal from '../modals/FiscalCodeModal';
+import PaymentModal from '../modals/PaymentModal';
 
 
 const scanType = Object.freeze({
@@ -195,7 +197,9 @@ const ctxModel={
                            
             return {
               ...state,
-              currentCart:{}
+              currentCart:{},
+              search:'',
+              searchItem:{}
             } 
 
       case 'removeItemFromCartList':
@@ -270,6 +274,24 @@ const ctxModel={
           
       }
 
+      case 'updateFiscalCode':
+
+      return {
+        ...state,
+        currentCart:{
+          ...currentCart,
+          costumer:{
+            id:crypto.randomUUID(),
+            fiscal_code:action.fiscalCode
+          }
+
+          
+        }
+        
+    }
+
+      return
+
 
       /* 
       CLOSE CART ROUTINE
@@ -284,7 +306,7 @@ const ctxModel={
           ...state,
           currentCart:{
             ...currentCart,
-            status:'closed',
+            status:'closing',
             closed_at: new Date(utcTime).toISOString()
 
             
@@ -363,14 +385,10 @@ const ctxModel={
       if(starting.current) dispatch({type:'init'})
     }
   
-  
- 
 
   useEffect(() => {
     console.log('init state')
     init()
-  
-   
   }, [])
   
   
@@ -408,7 +426,7 @@ const ctxModel={
   
   const nav = (view)=>dispatch({type:'changeView', id:view})
 
-  const closeCart= ()=>dispatch({type:'startClosingCartProcess'})
+  const willCloseCart= ()=>dispatch({type:'startClosingCartProcess'})
   
   const closeCartWrapper=()=>dispatch({type:'closeCartWrapper'})
 
@@ -418,19 +436,27 @@ const ctxModel={
 
   const searchItem = (upc)=> dispatch({type:'searchItemByUPC', searchString:upc})
 
+  const insertFiscalCode = (code)=>dispatch({type:'updateFiscalCode', fiscalCode:code})
+
+  const paymentModalAction = (value)=>{
+    console.log('paymentModalAction', value)
+    console.log('paymentModalAction cancelled?')
+
+}
+
   const newCart = ()=>{
     dispatch({type:'clearRead'})
     createCart()
   }
 
-  if(!ctx.session.exists) return ( <AppLayout><Start ctx={ctx} nav={nav} closeSession={closeSession}/></AppLayout>)
+  /* if(!ctx.session.exists) return ( <AppLayout><Start ctx={ctx} nav={nav} closeSession={closeSession}/></AppLayout>)
 
   if(ctx.view == 1) return (
     <>
       <Payment total={2.44} nav={nav} />
     </>
   )
-
+ */
   
 
 
@@ -453,19 +479,24 @@ const ctxModel={
     {/* Content page to display */}
     <div className="flex justify-center items-center w-full "> 
       
-      {!ctx.isScannerOn && <ScannerDisplay init={start} read={readed} port={portInfo} isOn={isScannerOn}/>}
+      {!ctx.isScannerOn && 
+      <ScannerDisplay 
+      init={start} 
+      read={readed} 
+      port={portInfo} 
+      isOn={isScannerOn}/>}
 
-      {ctx.port && 
-      !ctx.currentCart.cart_id && 
+      {ctx.isScannerOn && !ctx.currentCart.cart_id && 
       <InitCart current={ctx.currentCart} newCart={newCart}/>}
    
-     {ctx.port && 
-      ctx.currentCart.cart_id && 
+     {ctx.currentCart.cart_id && 
       <Main cart={ctx.currentCart} 
             trash={removeListItem}
             clear={clearCart}
-            closeCart={closeCartWrapper}
-            search={searchItem}/>}
+            closeCart={willCloseCart}
+            search={searchItem}
+            fiscal={insertFiscalCode}
+            paymentAction={paymentModalAction}/>}
    
 
        
@@ -496,14 +527,22 @@ const ctxModel={
 }
 
 
-const Main = ( {cart, trash, clear, closeCart, search})=>{
+const Main = ( {
+  cart, 
+  trash, 
+  clear, 
+  closeCart, 
+  search,
+  fiscal,
+  paymentAction
+})=>{
 
   
   console.log('main cart ', cart, !!cart.items)
   const remove = (index)=>trash(index)
   const clearCart = ()=> clear()
   const closeCurrentCart = ()=>{
-    console.log('closing cart')
+    console.log('starting the cart close process')
     //console.log('session', JSON.stringify(session))
     //console.log('cart', JSON.stringify(cart))
     closeCart()
@@ -516,23 +555,31 @@ const Main = ( {cart, trash, clear, closeCart, search})=>{
     // Expected output: "12/20/2020"
   };
 
+  const lottery = ()=>{
+    console.log('lottery clicked')
+  }
+
   return(
   
+
   <div className='flex flex-row justify-center w-full h-fit '>
-
-
-    <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full bg-white mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
-            <div className='flex items-center  w-full h-[2.5rem] bg-teal-600 py-3 rounded-tl-2xl rounded-tr-2xl pr-2'>
-            <img  className=" w-[6rem] p-2" src='/marel-logo.png'/>
-                <span className='text-white text-lg font-semibold pl-3'>LA TUA SPESA</span>
+    <div className="absolute top-0 left-0 flex flex-row items-center " >
+        <img  className="w-[6rem] p-2" src='/marel-logo.png'/>
+        <Timer cn="font-xs text-gray-500 leading-3 text-[11px] mt-2"/>
+    </div>
+    
+    <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
+            <div className='flex items-center  w-full h-[2.5rem] bg-teal-600 py-3 rounded-tl-2xl rounded-tr-2xl justify-between px-4'>
+            
+                <span className='text-white text-lg font-semibold'>LA TUA SPESA</span>
                 
-                <span className="text-white text-lg pl-3">Cliente:--</span>  
+                <span className="text-white text-lg pl-3">{cart.costumer?cart.costumer.id:
+                <button>Identificati ora!</button>
+                }</span>  
                 
-                <span className="text-white text-lg pl-3">{getData(cart.created_at)}</span>  
-
-                <span className="text-white text-lg pl-3">0</span> 
+                <span className="text-white text-lg pl-3">{cart.items?cart.items.length:0}</span> 
             </div>
-            <div className="flex flex-col w-full h-[30rem] items-start overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none']">
+            <div className="flex flex-col w-full h-[24rem] items-start overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] bg-white">
                {!!cart.items
                 ? cart.items.map((el,i)=>!el.deleted &&<ListItemRender 
                 key={i} 
@@ -541,6 +588,12 @@ const Main = ( {cart, trash, clear, closeCart, search})=>{
                 />)
                 :<span className='text-blue font-thin text-3xl px-3 w-[16rem] my-3'>Passa i prodotti nello scanner...</span>}
                 
+            </div>
+            <div className='flex flex-row items-center mt-5 w-full h-[3.5rem]'>
+                <button className="bg-red-500  py-4 rounded-lg shadow-xl text-white font-semibold w-[10rem] text-2xl"
+              onClick={clearCart}>
+                CANCELLA
+              </button>
             </div>
 
         </div>
@@ -553,7 +606,7 @@ const Main = ( {cart, trash, clear, closeCart, search})=>{
             <div className=" flex flex-row h-[8rem]  border-zinc-600 bg-white shadow-lg rounded-2xl  w-[26rem] ">
                 <img  className="  h-[8rem] p-3 " src='/scanner.gif'/>
                 <div className=" flex flex-col w-full ">
-                    <span className='text-blue font-thin text-3xl px-3 self-center w-[16rem] my-3'>Il scanner non legge il prodotto?</span>
+                    <span className='text-blue font-thin text-3xl px-3 self-center w-[16rem] my-3'>Lo scanner non legge il prodotto?</span>
                     <SearchModal btnTitle='clicca'
                     update={search}/>
                    
@@ -561,12 +614,13 @@ const Main = ( {cart, trash, clear, closeCart, search})=>{
             </div>
 
 
-             <div className=" absolute top-8 right-28 flex flex-col h-[8rem] items-center justify-center border-zinc-600 bg-white shadow-lg rounded-2xl  w-[8rem] pb-6 ">
+             <div className=" absolute top-8 right-28 flex flex-col h-[8rem] items-center justify-center border-zinc-600 bg-white shadow-lg rounded-2xl  w-[8rem] pb-6 "
+             onClick={lottery}>
  
                  
                  <img  className="  w-[5rem]" src='/lotteryIcon.png'/>
- 
-                 <span className='text-blue font-thin text-xl px-3 text-center w-[10rem] leading-6'>LOTTERIA SCONTRINI</span>
+                 <FiscalCodeModal btnTitle='LOTTERIA SCONTRINI' update={fiscal} />
+               
                      
              </div>
              
@@ -598,10 +652,12 @@ const Main = ( {cart, trash, clear, closeCart, search})=>{
                  <span className='text-zinc-900 font-normal text-4xl text-center py-3 px-1 '> € </span>
                      <span className='text-zinc-900 font-normal text-4xl text-center py-3 '> {cart.total.toFixed(2)}</span>
              </div>
+             <PaymentModal 
+             btnTitle='PROCEDI COL PAGAMENTO'
+             update={paymentAction}
+             total={cart.total}
+             />
              
-             <button className={`bg-teal-600  py-4 mx-2 rounded-lg shadow-md text-white font-semibold w-full text-2xl ${cart.total==0?'disabled':''}`}
-             onClick={closeCurrentCart}>PROCEDI COL PAGAMENTO
-             </button>
  
          </div>
     </div>
@@ -644,6 +700,8 @@ const ListItemRender = (props) => {
   </div>
   )
 }
+
+
 
 
 
