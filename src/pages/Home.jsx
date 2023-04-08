@@ -1,5 +1,5 @@
 import React, { useState, useEffect , useRef, useReducer} from 'react'
-import RenderListItem from '../components/RenderListItem'
+import RenderListItem from '../components/RenderList'
 import useStore from '../context/hooks/useStore'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { getLocalStorageCollectionDataByKey, getCartValue } from '../utils/functions'

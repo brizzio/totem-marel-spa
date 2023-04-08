@@ -79,7 +79,7 @@ const PaymentModal = ({ btnTitle, update, total }) =>{
           onClose={onClose}
           onCancel={onCancel}
           onClick={onClick}
-          className="relative w-[40rem] h-[40rem] shadow-2xl rounded-2xl flex flex-col items-center "
+          className="relative w-[40rem] h-[43rem] shadow-2xl rounded-2xl flex flex-col items-center "
         >
           <form className="w-full flex flex-col items-center gap-6 "
                 method="dialog">

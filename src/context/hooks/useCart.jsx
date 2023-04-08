@@ -81,6 +81,7 @@ const useCart = () => {
     
             let newCart = {
                 cart_id:id,
+                status:'active',
                 date:formattedDate,
                 created_at:createdAt,
                 closed_at:'',

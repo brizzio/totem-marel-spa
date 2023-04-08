@@ -18,6 +18,11 @@ import { fetchQuery } from './api/api';
 
 import Timer from './components/common/Timer'
 
+//components
+import RenderList from './components/RenderList';
+import ClosingCart from './components/ClosingCart';
+import PrintTicket from './components/PrintTicket';
+
 import SearchModal from '../modals/SearchModal';
 import FiscalCodeModal from '../modals/FiscalCodeModal';
 import PaymentModal from '../modals/PaymentModal';
@@ -243,7 +248,7 @@ const ctxModel={
               currentRead:{}
             } 
       
-      /* 
+/* 
       payment methods {
         debit:'debit',
         credit:'credit',
@@ -258,7 +263,7 @@ const ctxModel={
         aborted:'aborted'
       }
       
-      */
+      
       case 'selectPaymentMethod':
         console.log('selectPaymentMethod...', action.payment)
                 
@@ -273,7 +278,7 @@ const ctxModel={
           }
           
       }
-
+*/
       case 'updateFiscalCode':
 
       return {
@@ -297,11 +302,37 @@ const ctxModel={
       CLOSE CART ROUTINE
       
       */
+
+      case 'paymentMethod':
+
+      return  {
+        ...state,
+        currentCart:{
+          ...currentCart,
+          status:'closing',
+          payment_method:action.method,
+          payment_status:'pending'
+        }
+        
+    }
+
+
+    case 'paymentStatus':
+
+      return  {
+        ...state,
+        currentCart:{
+          ...currentCart,
+          status:'closing',
+          payment_status:action.status
+        }
+        
+    }
+
+
       case 'startClosingCartProcess':
         console.log('startClosingCartProcess...')
-
        
-                
         return  {
           ...state,
           currentCart:{
@@ -440,9 +471,13 @@ const ctxModel={
 
   const paymentModalAction = (value)=>{
     console.log('paymentModalAction', value)
-    console.log('paymentModalAction cancelled?')
+    dispatch({type:'paymentMethod', method:value})
+  }
 
-}
+  const paymentStatusChange = (value)=>{
+    console.log('paymentStatusChange', value)
+    dispatch({type:'paymentStatus', status:value})
+  }
 
   const newCart = ()=>{
     dispatch({type:'clearRead'})
@@ -489,7 +524,7 @@ const ctxModel={
       {ctx.isScannerOn && !ctx.currentCart.cart_id && 
       <InitCart current={ctx.currentCart} newCart={newCart}/>}
    
-     {ctx.currentCart.cart_id && 
+     {ctx.currentCart.status=='active' && 
       <Main cart={ctx.currentCart} 
             trash={removeListItem}
             clear={clearCart}
@@ -498,31 +533,28 @@ const ctxModel={
             fiscal={insertFiscalCode}
             paymentAction={paymentModalAction}/>}
    
-
-       
-
-    </div>
-   
     
 
+    {ctx.currentCart.status=='closing' && 
+    ctx.currentCart.payment_status=='pending' && 
+      <ClosingCart 
+      cart={ctx.currentCart} 
+      payStatus={paymentStatusChange} />}
 
-
-
-
-
-
+    {ctx.currentCart.status=='closing' && 
+    ctx.currentCart.payment_status=='fulfilled' && 
+     <PrintTicket />}
    
+    
+    
+    
+    </div>
    
    
 
    </AppLayout>
    
    
-      
-       
-      
-    
-    
   )
 }
 
@@ -569,26 +601,7 @@ const Main = ( {
     </div>
     
     <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
-            <div className='flex items-center  w-full h-[2.5rem] bg-teal-600 py-3 rounded-tl-2xl rounded-tr-2xl justify-between px-4'>
-            
-                <span className='text-white text-lg font-semibold'>LA TUA SPESA</span>
-                
-                <span className="text-white text-lg pl-3">{cart.costumer?cart.costumer.id:
-                <button>Identificati ora!</button>
-                }</span>  
-                
-                <span className="text-white text-lg pl-3">{cart.items?cart.items.length:0}</span> 
-            </div>
-            <div className="flex flex-col w-full h-[24rem] items-start overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:'none'] [scrollbar-width:'none'] bg-white">
-               {!!cart.items
-                ? cart.items.map((el,i)=>!el.deleted &&<ListItemRender 
-                key={i} 
-                item={el}
-                onTrashClick={()=>remove(i)}
-                />)
-                :<span className='text-blue font-thin text-3xl px-3 w-[16rem] my-3'>Passa i prodotti nello scanner...</span>}
-                
-            </div>
+           <RenderList cart={cart} />
             <div className='flex flex-row items-center mt-5 w-full h-[3.5rem]'>
                 <button className="bg-red-500  py-4 rounded-lg shadow-xl text-white font-semibold w-[10rem] text-2xl"
               onClick={clearCart}>
@@ -665,41 +678,6 @@ const Main = ( {
   )
 }
 
-
-const ListItemRender = (props) => {
-  
-
-  const { item, onTrashClick}  = props
-  
-
-  var total = item.calculated_price?parseFloat(item.calculated_price):0
-  var priceType = item.promo_type>0?"P":"R"
-
- 
-  
-
-  return (
-  <div className='flex flex-row w-full px-3 py-0.5 items-center justify-between text-xs text-gray-900 border-b border-gray-400'>
-      <div className='flex flex-row items-center'>
-          <span className="px-2">{item.upc}</span> 
-          <span className="px-2">{item.product_name}</span>       
-          <span className="pl-2">{item.weight}</span>
-          <span>{item.weight_unit}</span>          
-      </div>  
-      <div className="py-1 px-1">
-          <div className="flex flex-row py-1 px-1 items-center gap-1">
-              <span>{item.currency}</span>
-              <span>{total.toFixed(2)}</span>
-              <span className="px-2">{priceType}</span> 
-              <button id={item.entry_id} 
-                      onClick={onTrashClick}>
-                  <i className="fa-regular fa-trash-can"></i>
-              </button>
-          </div>          
-      </div>
-  </div>
-  )
-}
 
 
 
