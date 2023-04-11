@@ -22,10 +22,12 @@ import Timer from './components/common/Timer'
 import RenderList from './components/RenderList';
 import ClosingCart from './components/ClosingCart';
 import PrintTicket from './components/PrintTicket';
+import Bags from './components/Bags';
 
-import SearchModal from '../modals/SearchModal';
-import FiscalCodeModal from '../modals/FiscalCodeModal';
-import PaymentModal from '../modals/PaymentModal';
+import SearchModal from './modals/SearchModal';
+import FiscalCodeModal from './modals/FiscalCodeModal';
+import PaymentModal from './modals/PaymentModal';
+
 
 
 const scanType = Object.freeze({
@@ -68,7 +70,8 @@ const ctxModel={
   currentCart:{},
   currentRead:{},
   search:'',
-  view:0
+  view:0,
+  showRegisterForm:false
 }
 
 
@@ -166,6 +169,29 @@ const ctxModel={
       const upcDetails = action.searchString?checkEan(action.searchString):{}
       const searchResult = searchCode(action.searchString)
 
+      let items = [...state.currentCart.items]
+
+      if (!!searchResult){
+          
+
+        let item ={
+          ...searchResult,
+          code_type:'upc',
+          read_id:'manual',
+          digits:upcDetails.digits,
+          entry_id:new Date(utcTime).toISOString().replace(/\D/g, ''),
+          deleted:false,
+          date_added: date,
+          time_added: utcTime,
+          order:'1/1',
+          quantity:1,
+
+        }
+
+        let items = [...items, item]
+        
+      }
+
      
       return {
         ...state,
@@ -175,7 +201,14 @@ const ctxModel={
                      reference:!!searchResult?searchResult:{},
                      isListed:!!searchResult,
                      type:!!searchResult?'PRODUCT':'OTHER'
-                    }
+                    },
+        currentCart:{
+                      ...currentCart,
+                      items:items,
+                      total:summarize(items,'calculated_price')
+                      
+                    },
+        currentRead:{}
         
 
       }
@@ -295,8 +328,65 @@ const ctxModel={
         
     }
 
-      return
+    case 'insertOrRemoveBag':
 
+    let newBag ={
+      ...state.prices.find(item => item.product_id === 145),
+      code_type:'upc',
+      read_id:'bag_insertion',
+      digits:'',
+      entry_id:new Date(utcTime).toISOString().replace(/\D/g, ''),
+      deleted:false,
+      date_added: date,
+      time_added: utcTime,
+      order:'1/1',
+      quantity:1,
+
+    }
+
+    let list = []
+
+
+    if(action.toDo == 'add'){
+      list = [...state.currentCart.items, newBag]
+    }
+
+    if(action.toDo == 'remove'){
+      const arr = state.currentCart.items
+      const index = arr.findIndex(obj => {
+        return obj.product_id == 145;
+      });
+      console.log('bag index',index); // 👉️ -1
+      
+      if (index !== -1) {
+        arr.splice(index,1)
+        list = arr
+        console.log('list', list)
+        
+      }
+      
+    }
+
+
+      return {
+
+          ...state,
+          currentCart:{
+            ...currentCart,
+            items:list,
+            total:summarize(list,'calculated_price')
+            
+          }
+
+      }
+
+      case 'showRegisterCostumerForm':
+
+      return{
+        ...state,
+        showRegisterForm: !state.showRegisterForm
+      }
+ 
 
       /* 
       CLOSE CART ROUTINE
@@ -484,6 +574,21 @@ const ctxModel={
     createCart()
   }
 
+  const bagger = (value)=>{
+    //the value is add or remove
+    console.log('edit bags action ', value)
+    dispatch({type:'insertOrRemoveBag', toDo:value })
+  }
+
+  const toggleRegisterForm = ()=>{
+    console.log('toggleRegisterForm isVisible', ctx.showRegisterForm)
+    dispatch({type:'showRegisterCostumerForm'})
+  }
+  const registerCostumer = (payload)=>{
+    console.log('register costumer', payload)
+    dispatch({type:'registerCostumer'})
+  }
+
   /* if(!ctx.session.exists) return ( <AppLayout><Start ctx={ctx} nav={nav} closeSession={closeSession}/></AppLayout>)
 
   if(ctx.view == 1) return (
@@ -525,13 +630,16 @@ const ctxModel={
       <InitCart current={ctx.currentCart} newCart={newCart}/>}
    
      {ctx.currentCart.status=='active' && 
+     !ctx.showRegisterForm &&
       <Main cart={ctx.currentCart} 
             trash={removeListItem}
             clear={clearCart}
             closeCart={willCloseCart}
             search={searchItem}
             fiscal={insertFiscalCode}
-            paymentAction={paymentModalAction}/>}
+            paymentAction={paymentModalAction}
+            editBags={bagger}
+            toggleForm={toggleRegisterForm}/>}
    
     
 
@@ -543,8 +651,17 @@ const ctxModel={
 
     {ctx.currentCart.status=='closing' && 
     ctx.currentCart.payment_status=='fulfilled' && 
-     <PrintTicket />}
+     <PrintTicket closeCart={closeCartWrapper}/>}
    
+   {ctx.showRegisterForm && 
+   <div>
+    
+    <div>
+      costumer form
+    </div>
+    <button onClick={()=>toggleRegisterForm()}>close form</button>
+    
+    </div>}
     
     
     
@@ -566,7 +683,9 @@ const Main = ( {
   closeCart, 
   search,
   fiscal,
-  paymentAction
+  paymentAction,
+  editBags,
+  toggleForm
 })=>{
 
   
@@ -601,14 +720,18 @@ const Main = ( {
     </div>
     
     <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
-           <RenderList cart={cart} />
-            <div className='flex flex-row items-center mt-5 w-full h-[3.5rem]'>
+           <RenderList cart={cart} 
+                       toggle={toggleForm}/>
+            <div className='flex flex-row items-center mt-5 w-full h-[3.5rem] justify-between'>
                 <button className="bg-red-500  py-4 rounded-lg shadow-xl text-white font-semibold w-[10rem] text-2xl"
               onClick={clearCart}>
                 CANCELLA
               </button>
-            </div>
+              <Bags list={cart.items}
+            edit={editBags} />
 
+            </div>
+           
         </div>
 
         <div className='flex flex-col items-left justify-center w-1/2  gap-5 ml-3 mt-4'>

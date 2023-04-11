@@ -1,7 +1,10 @@
 import React , {useState, useEffect} from 'react'
 
-const RenderList = ({cart})=>{
 
+const RenderList = ({cart, toggle})=>{
+console.log('render list cart costumer exist', !JSON.stringify(cart.costumer)=='{}')
+
+const costumerExist = !JSON.stringify(cart.costumer)=='{}'
     return (
   
       <>
@@ -9,8 +12,11 @@ const RenderList = ({cart})=>{
               
               <span className='text-white text-lg font-semibold'>LA TUA SPESA</span>
               
-              <span className="text-white text-lg pl-3">{cart.costumer?cart.costumer.id:
-              <button>Identificati ora!</button>
+              <span className="text-white text-lg pl-3">{costumerExist?cart.costumer.id:
+              <button className=" text-slate-50 text-lg pl-3" 
+              onClick={()=>toggle()}>
+                Identificati Ora!
+              </button>
               }</span>  
               
               <span className="text-white text-lg pl-3">{cart.items?cart.items.length:0}</span> 

@@ -1,26 +1,34 @@
-import React , {useEffect, useState} from 'react'
+import React , {useEffect, useState, useRef} from 'react'
 
-const PrintTicket = () => {
+const PrintTicket = ({closeCart}) => {
 
     const timeout = ms => new Promise(res => setTimeout(res, ms))
 
-    const [end, setEnd] = useState(false)
+    const [print, setPrint] = useState(false)
+
+    const message = useRef('')
+
+    const wrapUpCart = () => closeCart()
 
     const selection = (type)=>{
         console.log('Print Type Selected >> ', type)
-        setEnd(true)
+        if (type == "paper") message.current='Stampa del tagliando in corso...'
+        if (type == "mobile") message.current='Lo scontrino sara inviato al tuo cellulare'
+        setPrint(true)
+        timeout(3000).then(()=>{
+          console.log('printing processed....')
+          setPrint(false)
+          wrapUpCart()
+        })
 
     }
+
+    
   
-    useEffect(() => {
-        timeout(2000).then(()=>{
-          console.log('printing processed....', end)
-          
-        })
-      }, [end]);
+   
   
       console.log('PrintTicket view')
-  
+      if (print) return (<div>{message.current}</div>)
       return(
       <>
       <div className="flex flex-col h-grow w-full bg-white p-3 mt-4 rounded-2xl shadow-xl items-center justify-center gap-4">    

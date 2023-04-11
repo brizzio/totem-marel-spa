@@ -48,6 +48,7 @@ const useCart = () => {
         count:0,
         total:0,
         fiscal_code:'',
+        costumer:{},
         items:[]
     }
     

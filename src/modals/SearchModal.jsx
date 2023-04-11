@@ -53,12 +53,12 @@ const SearchModal = ({ btnTitle, update }) =>{
     inputRef.current.value=str
     confirmBtn.current.value = str
   }
-
+//className="bg-black  py-2 mx-2 rounded-lg shadow-xl text-white font-semibold w-[14rem] text-2xl"
   return (
     <>
       {!isOpen ? (
         <button 
-        className="bg-teal-700  py-2 mx-2 rounded-lg shadow-xl text-white font-semibold w-[14rem] text-2xl"
+        className="w-[12rem] rounded-lg shadow-xl h-[4rem] py-2 bg-teal-600 text-white font-semibold text-xl ml-3"
         onClick={() => setIsOpen(true)}>
           {btnTitle.toUpperCase()}
         </button>
