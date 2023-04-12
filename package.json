@@ -17,7 +17,8 @@
     "react-router-dom": "^6.8.1",
     "react-select": "^5.7.0",
     "react-simple-keyboard": "^3.5.54",
-    "react-svg": "^16.1.2"
+    "react-svg": "^16.1.2",
+    "react-to-print": "^2.14.12"
   },
   "devDependencies": {
     "@types/react": "^18.0.27",

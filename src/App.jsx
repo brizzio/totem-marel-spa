@@ -669,7 +669,8 @@ const ctxModel={
 
     {ctx.currentCart.status=='closing' && 
     ctx.currentCart.payment_status=='fulfilled' && 
-     <PrintTicket closeCart={closeCartWrapper}/>}
+     <PrintTicket closeCart={closeCartWrapper}
+                  cart={ctx.currentCart}/>}
    
    {ctx.showRegisterForm && 
    <div className="flex flex-col justify-center w-full">
