@@ -16,23 +16,30 @@ const Bags = ({list, edit}) => {
 
     function increment() {
 
-        edit('add')  
+          
         setCount(function (prevCount) {
+          
           return (prevCount += 1);
         });
+
+        edit('add')
+
 
         
       }
   
       function decrement() {
-        edit('remove')
+        
         setCount(function (prevCount) {
           if (prevCount > 0) {
+            
             return (prevCount -= 1); 
           } else {
             return 0;
           }
         });
+
+        edit('remove')
         
       }
 

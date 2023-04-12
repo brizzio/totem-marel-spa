@@ -24,6 +24,8 @@ import ClosingCart from './components/ClosingCart';
 import PrintTicket from './components/PrintTicket';
 import Bags from './components/Bags';
 
+import RegisterCostumer from './components/forms/RegisterCostumer';
+
 import SearchModal from './modals/SearchModal';
 import FiscalCodeModal from './modals/FiscalCodeModal';
 import PaymentModal from './modals/PaymentModal';
@@ -44,7 +46,7 @@ function App() {
   const { prices } = usePrices()
   const {session, closeSession } = useSession()
   const {start, readed, portInfo, isScannerOn } = useScanner()
-
+  const costumerForm = useRef()
   
   const {
     currentCart,
@@ -203,7 +205,7 @@ const ctxModel={
                      type:!!searchResult?'PRODUCT':'OTHER'
                     },
         currentCart:{
-                      ...currentCart,
+                      ...state.currentCart,
                       items:items,
                       total:summarize(items,'calculated_price')
                       
@@ -255,7 +257,7 @@ const ctxModel={
         const removedState = {
             ...state,
             currentCart:{
-              ...currentCart,
+              ...state.currentCart,
               items:removedList,
               total:summarize(removedList,'calculated_price')
               
@@ -317,7 +319,7 @@ const ctxModel={
       return {
         ...state,
         currentCart:{
-          ...currentCart,
+          ...state.currentCart,
           costumer:{
             id:crypto.randomUUID(),
             fiscal_code:action.fiscalCode
@@ -372,7 +374,7 @@ const ctxModel={
 
           ...state,
           currentCart:{
-            ...currentCart,
+            ...state.currentCart,
             items:list,
             total:summarize(list,'calculated_price')
             
@@ -386,6 +388,17 @@ const ctxModel={
         ...state,
         showRegisterForm: !state.showRegisterForm
       }
+
+      case 'registerCostumer':
+      
+      return{
+        ...state,
+        currentCart:{
+            ...state.currentCart,
+            costumer:{...action.data}
+        },
+        showRegisterForm: false
+      }
  
 
       /* 
@@ -398,7 +411,7 @@ const ctxModel={
       return  {
         ...state,
         currentCart:{
-          ...currentCart,
+          ...state.currentCart,
           status:'closing',
           payment_method:action.method,
           payment_status:'pending'
@@ -412,7 +425,7 @@ const ctxModel={
       return  {
         ...state,
         currentCart:{
-          ...currentCart,
+          ...state.currentCart,
           status:'closing',
           payment_status:action.status
         }
@@ -426,7 +439,7 @@ const ctxModel={
         return  {
           ...state,
           currentCart:{
-            ...currentCart,
+            ...state.currentCart,
             status:'closing',
             closed_at: new Date(utcTime).toISOString()
 
@@ -589,6 +602,11 @@ const ctxModel={
     dispatch({type:'registerCostumer'})
   }
 
+  const confirm = ()=>{console.log('conferma', costumerForm.current.getAllInputs())
+  dispatch({type:'registerCostumer', data:costumerForm.current.getAllInputs()})
+  
+}
+
   /* if(!ctx.session.exists) return ( <AppLayout><Start ctx={ctx} nav={nav} closeSession={closeSession}/></AppLayout>)
 
   if(ctx.view == 1) return (
@@ -611,9 +629,9 @@ const ctxModel={
     
     
     {/* Absolute positioned items */}
-    <div className="absolute top-0 right-0"> 
+    {/* <div className="absolute top-0 right-0"> 
        <IdiomSelector/>
-    </div>
+    </div> */}
     <BizerbaLogoSVG cn="absolute -bottom-1 right-3 pr-3"/> 
    
     {/* Content page to display */}
@@ -654,12 +672,20 @@ const ctxModel={
      <PrintTicket closeCart={closeCartWrapper}/>}
    
    {ctx.showRegisterForm && 
-   <div>
-    
-    <div>
-      costumer form
+   <div className="flex flex-col justify-center w-full">
+    <div className='flex items-center h-[2rem] justify-between mb-4 mx-3'>
+      <button
+      className="bg-red-400 rounded-lg p-4 text-white text-lg " 
+      onClick={()=>toggleRegisterForm()}>INDIETRO</button>
+      <button 
+      className="bg-green-400 rounded-lg p-4 text-white text-lg " 
+      onClick={confirm}>CONFERMA</button>
     </div>
-    <button onClick={()=>toggleRegisterForm()}>close form</button>
+    
+   
+    <RegisterCostumer formRef={costumerForm} />
+
+    <img  className="absolute w-[6rem] bottom-0 p-2" src='/marel-logo.png'/>
     
     </div>}
     
@@ -727,7 +753,7 @@ const Main = ( {
               onClick={clearCart}>
                 CANCELLA
               </button>
-              <Bags list={cart.items}
+              <Bags list={[...cart.items]}
             edit={editBags} />
 
             </div>

@@ -2,9 +2,10 @@ import React , {useState, useEffect} from 'react'
 
 
 const RenderList = ({cart, toggle})=>{
-console.log('render list cart costumer exist', !JSON.stringify(cart.costumer)=='{}')
+console.log('render list cart costumer exist', JSON.stringify(cart.costumer), !JSON.stringify(cart.costumer)=='{}')
 
-const costumerExist = !JSON.stringify(cart.costumer)=='{}'
+const costumerExist = JSON.stringify(cart.costumer)!=='{}'
+console.log('costumerExist', costumerExist)
     return (
   
       <>
@@ -12,7 +13,7 @@ const costumerExist = !JSON.stringify(cart.costumer)=='{}'
               
               <span className='text-white text-lg font-semibold'>LA TUA SPESA</span>
               
-              <span className="text-white text-lg pl-3">{costumerExist?cart.costumer.id:
+              <span className="text-white text-lg pl-3">{costumerExist?Object.values(cart.costumer).join(" "):
               <button className=" text-slate-50 text-lg pl-3" 
               onClick={()=>toggle()}>
                 Identificati Ora!

@@ -1,0 +1,27 @@
+input {
+    width: 98%;
+    height: 80px;
+    padding: 20px;
+    font-size: 20px;
+    margin-top: 10px;
+    margin-left:10px;
+    border: none;
+    box-sizing: border-box;
+  }
+  
+  .simple-keyboard {
+    width: 950px;
+    margin:auto;
+    border-width: 4px;
+    
+  }
+
+  .react-simple-keyboard{
+    margin-top: 2rem;
+    width:100%;
+
+  }
+
+  div {
+
+  }

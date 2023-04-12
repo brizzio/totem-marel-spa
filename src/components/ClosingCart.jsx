@@ -88,7 +88,7 @@ const Bancomat = ({total, payStatus})=>{
     }, [shuffle]) */
 
     useEffect(() => {
-      timeout(2000).then(()=>{
+      timeout(6000).then(()=>{
         console.log('processou bancomat....', total, payStatus)
         payStatus('fulfilled')
       })
