@@ -746,7 +746,8 @@ const Main = ( {
     </div>
     
     <div className='flex flex-col items-center justify-center  border-zinc-600 w-1/2 h-full mx-2 mt-4 rounded-tl-2xl rounded-tr-2xl ' >
-           <RenderList cart={cart} 
+           <RenderList cart={cart}
+                       trash={trash}  
                        toggle={toggleForm}/>
             <div className='flex flex-row items-center mt-5 w-full h-[3.5rem] justify-between'>
                 <button className="bg-red-500  py-4 rounded-lg shadow-xl text-white font-semibold w-[10rem] text-2xl"

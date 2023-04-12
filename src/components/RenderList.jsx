@@ -1,12 +1,13 @@
 import React , {useState, useEffect} from 'react'
 
 
-const RenderList = ({cart, toggle})=>{
+const RenderList = ({cart, toggle, trash})=>{
 console.log('render list cart costumer exist', JSON.stringify(cart.costumer), !JSON.stringify(cart.costumer)=='{}')
 
 const costumerExist = JSON.stringify(cart.costumer)!=='{}'
 console.log('costumerExist', costumerExist)
-    return (
+
+return (
   
       <>
       <div className='flex items-center  w-full h-[2.5rem] bg-teal-600 py-3 rounded-tl-2xl rounded-tr-2xl justify-between px-4'>
@@ -27,7 +28,7 @@ console.log('costumerExist', costumerExist)
               ? cart.items.map((el,i)=>!el.deleted &&<ListItemRender 
               key={i} 
               item={el}
-              onTrashClick={()=>remove(i)}
+              onTrashClick={()=>trash(i)}
               />)
               :<span className='text-blue font-thin text-3xl px-3 w-[16rem] my-3'>Passa i prodotti nello scanner...</span>}
               
